@@ -3,7 +3,8 @@ import time
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
 class FileEventHandler(FileSystemEventHandler):
-    def __init__(self, utils) -> None:
+    def __init__(self, history_handler, utils) -> None:
+        self.history_handler = history_handler
         self.utils = utils
         super().__init__()
         
@@ -17,6 +18,8 @@ class FileEventHandler(FileSystemEventHandler):
             print("Changes detected.")
             self.utils.modified_file_path = event.src_path
             print("Modified file path:", self.utils.modified_file_path)
+            self.history_handler.show_file_content()
+            self.history_handler.show_directory_tree()
 
         return super().on_modified(event)
     

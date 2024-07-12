@@ -24,7 +24,7 @@ class FileHistoryHandler:
                     self.visited.add(path.resolve())
                     tree[path.name] = self.get_directory_tree(path)
                     file_repr.file_path = f"{current_path}/{path.name}"
-                    print(f"DEBUG {file_repr.file_path}")
+
             else:
                 if path.name not in self.utils.excluded_files:
                     file_repr.file_path = f"{current_path}/{path.name}"
@@ -46,3 +46,22 @@ class FileHistoryHandler:
 
     def show_directory_tree(self):
         print(json.dumps(self.tree, cls=FileReprEncoder, indent=4))
+
+
+    def get_file_repr(self):
+        path_parts = self.utils.modified_file_path.split('\\')
+
+        current = self.tree
+        # Traverse tree
+        try:
+            for part in path_parts:
+                if part in self.utils.excluded_dirs or part in self.utils.excluded_files:
+                    return f"Warning: '{self.utils.modified_file_path}' found in excluded."
+                current = current[part]
+            return current
+
+        except KeyError:
+            print(f"Error: '{self.utils.modified_file_path}' not found in the directory tree.")
+
+    def get_changed_file_repr(self):
+        

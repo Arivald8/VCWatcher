@@ -14,16 +14,23 @@ class VCWatcher:
 
     def __init__(self, API_KEY: str):
         self.api_key = os.getenv(API_KEY)
+
         self.utils = Utils()
-        self.event_handler = FileEventHandler(self.utils)
+
         self.file_history = FileHistoryHandler(utils=self.utils)
+
+        self.event_handler = FileEventHandler(
+            history_handler=self.file_history, 
+            utils=self.utils
+        )
+
 
         self.path = '.'
 
     def log_api_key(self):
        return self.api_key
     
-    def event_logger(self):
+    def observe_dir(self):
         observer = Observer()
         observer.schedule(self.event_handler, self.path, recursive=True)
         observer.start()
@@ -37,6 +44,17 @@ class VCWatcher:
         observer.join()
 
 watch = VCWatcher("API_KEY")
+# Construct Tree
 watch.file_history.construct_tree()
-watch.file_history.show_directory_tree()
-watch.event_logger()
+# Watch for changes
+watch.observe_dir()
+
+
+
+# Start
+# Construct Tree
+# Watch for changes... 
+# Change detected
+# Store file name, file path
+# Perform lookup on tree given file path
+# Build context with file content + detected changes
