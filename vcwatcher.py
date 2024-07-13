@@ -1,7 +1,7 @@
 import os
 import time
+import threading
 from dotenv import load_dotenv
-
 from watchdog.observers import Observer
 
 from file_event_handler import FileEventHandler
@@ -46,12 +46,31 @@ class VCWatcher:
 
         observer.join()
 
-watch = VCWatcher("API_KEY")
-# Construct Tree
-watch.file_history.construct_tree()
-# Watch for changes
-watch.observe_dir()
+    def start_observing_in_thread(self):
+        observing_thread = threading.Thread(target=self.observe_dir)
+        observing_thread.daemon = True
+        observing_thread.start()
 
+
+if __name__ == "__main__":
+    watch = VCWatcher("API_KEY")
+    # Construct Tree
+    watch.file_history.construct_tree()
+    # Watch for changes
+    watch.start_observing_in_thread()
+
+    while True:
+        print("\nEnter 'commit-generate' to collect diffs and generate a message.\n")
+        print("Enter 'exit' or 'quit' to close VCWatcher.")
+        command = input()
+        if command == "commit-generate":
+            watch.completion.generate_commit_msg(
+                watch.completion.commit_cache
+            )
+        elif command == "exit" or command == "quit":
+            exit()
+        else:
+            print("Unknown command...")
 
 
 # Start

@@ -19,7 +19,7 @@ class CompletionHandler:
                 {"role": "user", "content": str(diff_state)}
             ]
         )
-        return response # message content = response.choices[0].message.content
+        print(response.choices[0].message.content)
     
     def store_commit(self, file_path, changes):
         self.commit_cache[file_path].append(changes)

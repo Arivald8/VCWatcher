@@ -1,5 +1,7 @@
-x = 1
-x = 2
-x = 3
-x = 4
-x = 5
+class Pilotes:
+    def __init__(self, big, small, arge):
+        self.big = big
+        self.small = small
+        self.arge = arge
+
+pilotes = Pilotes(1, 2, 3)

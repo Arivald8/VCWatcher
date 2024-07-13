@@ -11,14 +11,14 @@ class FileEventHandler(FileSystemEventHandler):
         
     def on_modified(self, event: FileSystemEvent) -> None:
         if not event.is_directory:
+
             current_time = time.time()
             if current_time - self.utils.last_modified_time < self.utils.debounce_time:
                 return
+            
             self.utils.last_modified_time = current_time
 
-            print("Changes detected.")
             self.utils.modified_file_path = event.src_path
-            print("Modified file path:", self.utils.modified_file_path)
 
             # Store file content before changes
             old = self.history_handler.get_file_repr()
@@ -29,19 +29,17 @@ class FileEventHandler(FileSystemEventHandler):
             # Store file content after changes
             new = self.history_handler.get_file_repr()
 
-            print("DEBUGGER")
-
             try:
                 diffs = self.history_handler.compare_files(old.file_content, new.file_content)
-                commit_message = self.completion_handler.generate_commit_msg(diff_state=diffs)
-                print("Commit Message:")
-                print(commit_message.message.content)
+                self.completion_handler.store_commit(self.utils.modified_file_path, diffs)
+                # commit_message = self.completion_handler.generate_commit_msg(diff_state=diffs)
+                # print("Commit Message:")
+                # print(commit_message.message.content)
+                print(self.completion_handler.commit_cache)
 
-            except AttributeError:
+            except AttributeError as e:
                 print("Warning: No operations allowed on excluded files and directories")
-            
-            print("ENDBUGGER")
-            
+                print(e)            
 
         return super().on_modified(event)
     
