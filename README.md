@@ -66,6 +66,35 @@ Here is a quick guide to get you started:
     - To generate a commit message, simply save all your files and then use `commit-generate` in the terminal.
     - To exit, type `exit` or `quit`
 
+Example:
+```
+$ python vcwatcher.py .
+
+VCWatcher is observing ....
+
+Enter 'commit-generate' to collect diffs and generate a message.
+
+Enter 'exit' or 'quit' to close VCWatcher.
+
+> commit-generate
+
+ Generated commit message:
++ Updated README.md to reflect changes in VCWatcher functionality and usage.
++ Improved description of how VCWatcher automates the generation of professional commit messages.
++ Clarified that VCWatcher does not rely on third-party version control systems like git.
++ Added instructions on how to use the 'commit-generate' command for creating informative commit messages.
++ Enhanced information on the automatic generation of detailed commit messages using an LLM.
++ Made README.md more user-friendly by specifying how to exclude directories or files from monitoring.
++ Expanded the guide on cloning or downloading the repository, highlighting the importance of using a virtual environment for dependencies.
++ Provided detailed steps on how to utilize the root directory of vcwatcher.py for monitoring changes.
++ Enhanced the list of excluded directories and files to be more explicit.
++ Included a new section in README.md explaining how VCWatcher works, including details on vcwatcher.py and its dependencies.
++ Added information on the entry point of VCWatcher and its utilization of watchdog and dotenv dependencies.
++ Updated README.md with an explanation of how to configure and customize the API key in VCWatcher.
++ Included details on helper class objects in the constructor for efficient state management.
++ Expanded the documentation on the utility classes and their roles within VCWatcher.
+```
+
 
 ## Configuration
 Customize VCWatcher by modifying the `utils/utils.py` file:
