@@ -2,7 +2,7 @@ class Utils:
     content_prompt = """
             Generate professional version control commit message from provided list of diffs.
             + sign represents an addition of content, - sign represents removal. Be descriptive
-            with your message, but not literate.
+            and verbose. Do not include each line in the message.
         """
 
     def __init__(self):
