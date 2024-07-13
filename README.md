@@ -27,6 +27,7 @@ To get started with VCWatcher, follow these steps:
     ```
 
 2. Install required dependencies:
+    It is recommended to use a virutal environemnt for your dependencies.
     ```
     $ pip install -r requirements.txt
     ```
