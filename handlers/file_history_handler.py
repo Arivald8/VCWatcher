@@ -4,8 +4,8 @@ import difflib
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from file_repr import FileRepr, FileReprEncoder
-from utils import Utils
+from utils.file_repr import FileRepr, FileReprEncoder
+from utils.utils import Utils
 
 class FileHistoryHandler:
     def __init__(self, utils: Utils, tree: dict = {}) -> None:
@@ -66,7 +66,7 @@ class FileHistoryHandler:
             print(f"Error: '{self.utils.modified_file_path}' not found in the directory tree.")
             return None
 
-    def compare_files(self, old_file: str, new_file: str) -> list[str]:
+    def compare_files(self, old_file: str, new_file: str) -> List[str]:
         diff = difflib.ndiff(old_file.splitlines(), new_file.splitlines())
         differences = [line for line in diff if line.startswith('+ ') or line.startswith('- ')]
 

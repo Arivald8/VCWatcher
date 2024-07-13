@@ -2,16 +2,14 @@ import os
 import time
 import threading
 
-from typing import Dict, List
-
 from dotenv import load_dotenv
 from watchdog.observers import Observer
 
-from file_event_handler import FileEventHandler
-from file_history_handler import FileHistoryHandler
-from completion_handler import CompletionHandler
+from handlers.file_event_handler import FileEventHandler
+from handlers.file_history_handler import FileHistoryHandler
+from handlers.completion_handler import CompletionHandler
 
-from utils import Utils
+from utils.utils import Utils
 
 class VCWatcher:
     def __init__(self, API_KEY: str):
