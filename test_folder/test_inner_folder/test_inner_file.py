@@ -1,7 +1,10 @@
-class Pilotes:
-    def __init__(self, big, small, arge):
-        self.big = big
-        self.small = small
-        self.arge = arge
+class Car:
+    def __init__(self, make, model):
+        self.make = make
+        self.model = model
 
-pilotes = Pilotes(1, 2, 3)
+    def start_car(self):
+        return "Wrooom"
+    
+bmw = Car("BMW", "M5")
+cit = Car("Citroen", "Creative Technologie")
