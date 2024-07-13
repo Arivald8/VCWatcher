@@ -6,6 +6,7 @@ from watchdog.observers import Observer
 
 from file_event_handler import FileEventHandler
 from file_history_handler import FileHistoryHandler
+from completion_handler import CompletionHandler
 
 from utils import Utils
 
@@ -17,13 +18,15 @@ class VCWatcher:
 
         self.utils = Utils()
 
+        self.completion = CompletionHandler(self.api_key)
+
         self.file_history = FileHistoryHandler(utils=self.utils)
 
         self.event_handler = FileEventHandler(
-            history_handler=self.file_history, 
+            history_handler=self.file_history,
+            completion_handler=self.completion,
             utils=self.utils
         )
-
 
         self.path = '.'
 

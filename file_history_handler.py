@@ -1,5 +1,8 @@
 from pathlib import Path
+import difflib
+
 from file_repr import FileRepr, FileReprEncoder
+
 
 import json
 
@@ -47,7 +50,6 @@ class FileHistoryHandler:
     def show_directory_tree(self):
         print(json.dumps(self.tree, cls=FileReprEncoder, indent=4))
 
-
     def get_file_repr(self):
         path_parts = self.utils.modified_file_path.split('\\')
 
@@ -58,10 +60,24 @@ class FileHistoryHandler:
                 if part in self.utils.excluded_dirs or part in self.utils.excluded_files:
                     return f"Warning: '{self.utils.modified_file_path}' found in excluded."
                 current = current[part]
-            return current
+            
+            return current #: -> FileRepr Object
 
         except KeyError:
             print(f"Error: '{self.utils.modified_file_path}' not found in the directory tree.")
 
-    def get_changed_file_repr(self):
+    def compare_files(self, old_file: str, new_file: str) -> list[str]:
+        diff = difflib.ndiff(old_file.splitlines(), new_file.splitlines())
+        differences = [line for line in diff if line.startswith('+ ') or line.startswith('- ')]
+        # diff_output = "\n".join(differences)
+
+        return differences
+
+
+
+        
+
+        
+
+
         

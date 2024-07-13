@@ -1,4 +1,9 @@
 class Utils:
+    content_prompt = """
+            Generate professional version control commit message from provided list of diffs.
+            + sign represents an addition of content, - sign represents removal.
+        """
+
     def __init__(self):
         self.debounce_time: int = 1  # Debounce time in seconds
         self.last_modified_time: int = 0
@@ -17,4 +22,5 @@ class Utils:
             'package-lock.json', 
             '.env',
         }
+
 
