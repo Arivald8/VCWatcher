@@ -1,6 +1,8 @@
 import os
+import sys
 import time
 import threading
+from pathlib import Path
 
 from dotenv import load_dotenv
 from watchdog.observers import Observer
@@ -53,13 +55,27 @@ class VCWatcher:
         observing_thread.start()
 
     def run(self) -> None:
+        if len(sys.argv) != 2:
+            print("Usage: `python vcwatcher.py <directory_to_monitor>`")
+            return
+
+        self.path = Path(sys.argv[1])
+
+        if not self.path.is_dir():
+            print(f"Error: {self.path} is not a valid directory.")
+            return
+        
+        self.file_history.root_path = self.path
+
         self.file_history.construct_tree()
+
         self.start_observing_in_thread()
 
         while True:
+            print(f"\nVCWatcher is observing {self.path}...")
             print("\nEnter 'commit-generate' to collect diffs and generate a message.\n")
             print("Enter 'exit' or 'quit' to close VCWatcher.")
-            command = input().lower()
+            command = input("> ").lower()
             if command == "commit-generate":
                 response = watch.completion.generate_commit_msg(
                     watch.completion.commit_cache

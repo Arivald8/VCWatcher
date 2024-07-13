@@ -14,10 +14,11 @@ class FileHistoryHandler:
         self.utils = utils
         self.visited: set[Path] = set() # Cache for visited directories to avoid RecursionError
     
-    def get_directory_tree(self, current_path: Optional[Path] = None) -> Dict:
+    def get_directory_tree(self, current_path = None) -> Dict:
+        if current_path is None:
+            current_path = self.root_path
         tree = {}
-        
-        current_path = current_path or self.root_path
+    
 
         for path in current_path.iterdir():
             file_repr = FileRepr()
@@ -40,7 +41,6 @@ class FileHistoryHandler:
                         file_repr.file_content = file_content
 
                     tree[path.name] = file_repr
-        
         return tree
 
     def construct_tree(self) -> None:
@@ -53,18 +53,21 @@ class FileHistoryHandler:
     def get_file_repr(self) -> Optional[FileRepr]:
         path_parts = self.utils.modified_file_path.split('\\')
 
-        current = self.tree
-        try:
-            for part in path_parts:
-                if part in self.utils.excluded_dirs or part in self.utils.excluded_files:
-                    return f"Warning: '{self.utils.modified_file_path}' found in excluded."
-                current = current[part]
-            
-            return current
+        if path_parts[0] != '.':
+            path_parts[0] = '.'
 
-        except KeyError:
-            print(f"Error: '{self.utils.modified_file_path}' not found in the directory tree.")
-            return None
+        current = self.tree
+  
+        for part in path_parts:
+            if part in self.utils.excluded_dirs or part in self.utils.excluded_files:
+                return f"Warning: '{self.utils.modified_file_path}' found in excluded."
+            try:
+                current = current[part]
+            except KeyError:
+                continue
+        return current
+
+
 
     def compare_files(self, old_file: str, new_file: str) -> List[str]:
         diff = difflib.ndiff(old_file.splitlines(), new_file.splitlines())
