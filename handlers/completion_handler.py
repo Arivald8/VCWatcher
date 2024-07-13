@@ -3,8 +3,7 @@ from openai  import OpenAI
 from typing import List
 from collections import defaultdict
 
-from utils import Utils
-
+from utils.utils import Utils
 
 class CompletionHandler:
     def __init__(self, api_key: str) -> None:

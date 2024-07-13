@@ -6,7 +6,7 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 # For typing only -->
 from completion_handler import CompletionHandler
 from file_history_handler import FileHistoryHandler
-from utils import Utils
+from utils.utils import Utils
 # For typing only -->
 
 class FileEventHandler(FileSystemEventHandler):
