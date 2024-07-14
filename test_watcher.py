@@ -82,6 +82,8 @@ class TestVCWatcher(unittest.TestCase):
 
 class TestFileHistoryHandler(unittest.TestCase):
     def setUp(self):
+        # Temporary test directory will be created on setUp and removed on tearDown:
+        # "{'test_file.txt': FileRepr Object @ test_temp_dir/test_file.txt}"
         self.mock_utils = MagicMock(Utils)
         self.mock_utils.excluded_dirs = {
             'node_modules', 

@@ -24,7 +24,7 @@ class FileHistoryHandler:
             file_repr = FileRepr()
 
             if path.is_dir():
-                if path.name not in self.utils.excluded_dirs:
+                if path.name not in self.utils.excluded_dirs and path.resolve() not in self.visited:
                     self.visited.add(path.resolve())
                     tree[path.name] = self.get_directory_tree(path)
                     file_repr.file_path = f"{current_path}/{path.name}"
