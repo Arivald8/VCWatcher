@@ -1,4 +1,5 @@
 import time
+import logging
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
@@ -47,11 +48,7 @@ class FileEventHandler(FileSystemEventHandler):
                 diffs = self.history_handler.compare_files(old.file_content, new.file_content)
                 self.completion_handler.store_commit(self.utils.modified_file_path, diffs)
             except AttributeError as e:
-                print(f"Error comparing files: {e}")     
+                logging.error((f"Error comparing files: {e}"))     
 
             return super().on_modified(event)
       
-
-    
-
-

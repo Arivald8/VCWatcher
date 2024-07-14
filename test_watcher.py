@@ -2,27 +2,44 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 import shutil
+import time
+
+from watchdog.events import FileSystemEvent
+
 from vcwatcher import VCWatcher
 
 from handlers.file_history_handler import FileHistoryHandler
+from handlers.file_event_handler import FileEventHandler
+from handlers.completion_handler import CompletionHandler
 
 from utils.utils import Utils
-from utils.file_repr import FileRepr, FileReprEncoder
+from utils.file_repr import FileReprEncoder
 
 
 class TestVCWatcher(unittest.TestCase):
+    """
+    Arguments starting with a single underscore are intentional and
+    required by the `@patch` decorators, even if they are no used directly. 
+    """
+    
     @patch('vcwatcher.load_dotenv')
     @patch('vcwatcher.os.getenv')
     @patch('vcwatcher.Utils')
     @patch('vcwatcher.CompletionHandler')
     @patch('vcwatcher.FileHistoryHandler')
     @patch('vcwatcher.FileEventHandler')
-    def setUp(self, mock_file_event_handler, mock_file_history_handler, mock_completion_handler, mock_utils, mock_getenv, mock_load_dotenv):
-        mock_getenv.return_value = 'dummy_api_key'
-        self.vcwatcher = VCWatcher('API_KEY')
+    def setUp(
+        self, 
+        _mock_file_event_handler, 
+        _mock_file_history_handler, 
+        _mock_completion_handler, 
+        _mock_utils, 
+        _mock_load_dotenv,
+        mock_getenv,
+        ):
 
-    def test_init_loads_api_key(self):
-        self.assertEqual(self.vcwatcher.api_key, 'dummy_api_key')
+        mock_getenv.return_value = 'dummy_api_key'
+        self.vcwatcher = VCWatcher('dummy_api_key')
 
     @patch('vcwatcher.os.getenv')
     def test_init_raises_value_error_if_api_key_not_found(self, mock_getenv):
@@ -153,6 +170,77 @@ class TestFileHistoryHandler(unittest.TestCase):
         expected_differences = ['- line2', '+ line4']
         self.assertEqual(differences, expected_differences) 
 
+
+class TestFileEventHandler(unittest.TestCase):
+    def setUp(self):
+        self.mock_history_handler = MagicMock(spec=FileHistoryHandler)
+        self.mock_completion_handler = MagicMock(spec=CompletionHandler)
+        self.mock_utils = MagicMock(spec=Utils)
+        self.file_event_handler = FileEventHandler(
+            self.mock_history_handler,
+            self.mock_completion_handler,
+            self.mock_utils
+        )
+
+    @patch('time.time', return_value=100.0)
+    def test_on_modified_ignored_due_to_debouce(self, mock_time):
+        self.mock_utils.last_modified_time = 99.5
+        self.mock_utils.debounce_time = 1.0
+        event = MagicMock(spec=FileSystemEvent)
+        event.is_directory = False
+        event.src_path = "test.txt"
+
+        self.file_event_handler.on_modified(event)
+
+        self.assertEqual(self.mock_utils.last_modified_time, 99.5)
+        self.assertFalse(self.mock_history_handler.get_file_repr.called)
+
+    @patch('time.time', return_value=100.0)
+    def test_on_modified_processes_event(self, mock_time):
+        self.mock_utils.last_modified_time = 98.0
+        self.mock_utils.debounce_time = 1.0
+        event = MagicMock(spec=FileSystemEvent)
+        event.is_directory = False
+        event.src_path = "test.txt"
+
+        old_file_repr = MagicMock()
+        new_file_repr = MagicMock()
+        
+        self.mock_history_handler.get_file_repr.side_effect = [old_file_repr, new_file_repr]
+
+        diffs = ['diff1', 'diff2']
+
+        self.mock_history_handler.compare_files.return_value = diffs
+
+        self.file_event_handler.on_modified(event)
+
+        self.assertEqual(self.mock_utils.last_modified_time, 100.0)
+        self.assertEqual(self.mock_utils.modified_file_path, "test.txt")
+        self.mock_history_handler.construct_tree.assert_called_once()
+        self.mock_history_handler.compare_files.assert_called_once_with(
+            old_file_repr.file_content, new_file_repr.file_content
+        )
+        self.mock_completion_handler.store_commit.assert_called_once_with(
+            "test.txt", diffs
+        )
+
+    @patch('time.time', return_value=100.0)
+    def test_on_modified_handles_attribute_error(self, mock_time):
+        self.mock_utils.last_modified_time = 98.0
+        self.mock_utils.debounce_time = 1.0
+        event = MagicMock(spec=FileSystemEvent)
+        event.is_directory = False
+        event.src_path = "test.txt"
+
+        old_file_repr = MagicMock()
+        new_file_repr = MagicMock()
+        self.mock_history_handler.get_file_repr.side_effect = [old_file_repr, new_file_repr]
+        self.mock_history_handler.compare_files.side_effect = AttributeError("mocked error")
+
+        with self.assertLogs(level='ERROR') as log:
+            self.file_event_handler.on_modified(event)
+
+        self.assertIn("Error comparing files: mocked error", log.output[0])
 
 if __name__ == '__main__':
     unittest.main()
