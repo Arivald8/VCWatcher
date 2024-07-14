@@ -1,6 +1,14 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock, mock_open
+from pathlib import Path
+import json
 from vcwatcher import VCWatcher
+
+from handlers.file_history_handler import FileHistoryHandler
+
+from utils.utils import Utils
+from utils.file_repr import FileRepr, FileReprEncoder
+
 
 class TestVCWatcher(unittest.TestCase):
     @patch('vcwatcher.load_dotenv')
@@ -70,6 +78,56 @@ class TestVCWatcher(unittest.TestCase):
         mock_path.assert_called_once_with('/invalid/directory')
         mock_path_instance.is_dir.assert_called_once()
         mock_print.assert_called_once_with(f"Error: {mock_path_instance} is not a valid directory.")
+
+
+class TestFileHistoryHandler(unittest.TestCase):
+    def setUp(self):
+        self.mock_utils = MagicMock(Utils)
+        self.mock_utils.excluded_dirs = []
+        self.mock_utils.excluded_files = []
+        self.file_history_handler = FileHistoryHandler(utils=self.mock_utils)
+
+    def test_init(self):
+        self.assertIsInstance(self.file_history_handler.utils, Utils)
+        self.assertEqual(self.file_history_handler.root_path, Path('.'))
+        self.assertEqual(self.file_history_handler.tree, {})
+        self.assertEqual(self.file_history_handler.visited, set())
+
+    def test_construct_tree(self):
+        self.file_history_handler.visited.add(Path('some/dir'))
+        with patch.object(self.file_history_handler, 'get_directory_tree', return_value={'mock_tree': {}}):
+            self.file_history_handler.construct_tree()
+        self.assertEqual(self.file_history_handler.tree, {'.': {'mock_tree': {}}})
+        self.assertEqual(self.file_history_handler.visited, set())
+
+    @patch('json.dumps')
+    def test_show_directory_tree(self, mock_json_dumps):
+        self.file_history_handler.tree = {'mock_tree': {}}
+        self.file_history_handler.show_directory_tree()
+        mock_json_dumps.assert_called_once_with(self.file_history_handler.tree, cls=FileReprEncoder, indent=4)
+
+
+    def test_get_file_repr_excluded(self):
+        self.file_history_handler.tree = {
+            '.': {
+                'file1.txt': 'file1_repr',
+                'dir1': {
+                    'file2.txt': 'file2_repr'
+                }
+            }
+        }
+        self.mock_utils.excluded_files = ['file2.txt']
+        self.mock_utils.modified_file_path = '.\\dir1\\file2.txt'
+        file_repr = self.file_history_handler.get_file_repr()
+        self.assertEqual(file_repr, "Warning: '.\\dir1\\file2.txt' found in excluded.")
+
+    def test_compare_files(self):
+        old_file = "line1\nline2\nline3"
+        new_file = "line1\nline3\nline4"
+        differences = self.file_history_handler.compare_files(old_file, new_file)
+        expected_differences = ['- line2', '+ line4']
+        self.assertEqual(differences, expected_differences) 
+
 
 if __name__ == '__main__':
     unittest.main()

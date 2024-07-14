@@ -75,11 +75,3 @@ class FileHistoryHandler:
 
         return differences
 
-
-
-        
-
-        
-
-
-        
