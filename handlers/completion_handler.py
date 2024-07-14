@@ -1,4 +1,3 @@
-import os
 from openai  import OpenAI
 from typing import List
 from collections import defaultdict
@@ -24,6 +23,3 @@ class CompletionHandler:
         commit_header = "\n Generated commit message: \n"
         commit_msg = response.choices[0].message.content
         return commit_header + commit_msg
-    
-
-

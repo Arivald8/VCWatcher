@@ -1,8 +1,10 @@
 import unittest
-from unittest.mock import patch, MagicMock, mock_open
-from pathlib import Path
 import shutil
-import time
+import json
+
+from unittest.mock import patch, MagicMock
+from pathlib import Path
+from collections import defaultdict
 
 from watchdog.events import FileSystemEvent
 
@@ -13,7 +15,7 @@ from handlers.file_event_handler import FileEventHandler
 from handlers.completion_handler import CompletionHandler
 
 from utils.utils import Utils
-from utils.file_repr import FileReprEncoder
+from utils.file_repr import FileRepr, FileReprEncoder
 
 
 class TestVCWatcher(unittest.TestCase):
@@ -241,6 +243,92 @@ class TestFileEventHandler(unittest.TestCase):
             self.file_event_handler.on_modified(event)
 
         self.assertIn("Error comparing files: mocked error", log.output[0])
+
+
+class TestCompletionHandler(unittest.TestCase):
+    @patch('handlers.completion_handler.OpenAI')
+    def setUp(self, mock_openai):
+        self.api_key = 'dummy_api_key'
+        self.completion_handler = CompletionHandler(self.api_key)
+        self.mock_openai_client = mock_openai.return_value
+
+    def test_init(self):
+        self.assertEqual(self.completion_handler.client, self.mock_openai_client)
+        self.assertIsInstance(self.completion_handler.commit_cache, defaultdict)
+
+    def test_store_commit(self):
+        file_path = 'test_file.py'
+        changes = ['Added a new function', 'Refactored code']
+        self.completion_handler.store_commit(file_path, changes)
+        self.assertIn(file_path, self.completion_handler.commit_cache)
+        self.assertIn(changes, self.completion_handler.commit_cache[file_path])
+
+    @patch('handlers.completion_handler.Utils')
+    def test_generate_commit_msg(self, mock_utils):
+        diff_state = ['diff line 1', 'diff line 2']
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "This is a commit message"
+        self.mock_openai_client.chat.completions.create.return_value = mock_response
+        mock_utils.content_prompt = "This is a content prompt"
+
+        expected_commit_msg = "\n Generated commit message: \nThis is a commit message"
+        commit_msg = self.completion_handler.generate_commit_msg(diff_state)
+        self.assertEqual(commit_msg, expected_commit_msg)
+
+        self.mock_openai_client.chat.completions.create.assert_called_once_with(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "This is a content prompt"},
+                {"role": "user", "content": str(diff_state)}
+            ]
+        )
+
+class TestFileRepr(unittest.TestCase):
+    def setUp(self):
+        self.file_path = '/path/to/file.txt'
+        self.file_content = 'This is the content of the file.'
+        self.file_repr = FileRepr(self.file_path, self.file_content)
+
+    def test_init(self):
+        self.assertEqual(self.file_repr.file_path, self.file_path)
+        self.assertEqual(self.file_repr.file_content, self.file_content)
+
+    def test_str_method(self):
+        expected_str = f"File Path: {self.file_path} \n File Content: {self.file_content}"
+        self.assertEqual(str(self.file_repr), expected_str)
+
+    def test_repr_method(self):
+        expected_repr = f"FileRepr Object @ {self.file_path}"
+        self.assertEqual(repr(self.file_repr), expected_repr)
+
+    def test_to_dict_method(self):
+        expected_dict = {"FileRepr Object @": self.file_path}
+        self.assertEqual(self.file_repr.to_dict(), expected_dict)
+
+
+class TestFileReprEncoder(unittest.TestCase):
+    def setUp(self):
+        self.file_path = '/path/to/file.txt'
+        self.file_content = 'This is the content of the file.'
+        self.file_repr = FileRepr(self.file_path, self.file_content)
+        self.encoder = FileReprEncoder()
+
+    def test_default_method(self):
+        encoded = self.encoder.default(self.file_repr)
+        expected_dict = {"FileRepr Object @": self.file_path}
+        self.assertEqual(encoded, expected_dict)
+
+    def test_encode_file_repr(self):
+        encoded = json.dumps(self.file_repr, cls=FileReprEncoder)
+        expected_json = json.dumps({"FileRepr Object @": self.file_path})
+        self.assertEqual(encoded, expected_json)
+
+    def test_encode_other_objects(self):
+        obj = {'key': 'value'}
+        encoded = json.dumps(obj, cls=FileReprEncoder)
+        expected_json = json.dumps(obj)
+        self.assertEqual(encoded, expected_json)
 
 if __name__ == '__main__':
     unittest.main()

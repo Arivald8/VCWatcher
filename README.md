@@ -17,7 +17,8 @@ After making changes to your project, just use the 'commit-generate' command, an
 - [Installation]()
 - [Usage]()
 - [Configuration]()
-- [License]()
+- [Tests]()
+- [How it works]()
 
 ## Installation
 
@@ -113,6 +114,11 @@ Customize VCWatcher by modifying the `utils/utils.py` file:
 - **Completion prompts**: Modify system, or user prompts for the LLM.
 
     You can modify the default system and user prompts for the LLM to resolve. You can add additional instructions, or change them completely.
+
+## Tests
+In the root directory you will fine `test_watcher.py`, which uses `unittest` to test the tool. 
+Currently all files and methods **except** `utils/utils.py` have test coverage. The reason why
+`Utils` is not tested, is simply because there is nothing to test. 
 
 ## How it works
 
