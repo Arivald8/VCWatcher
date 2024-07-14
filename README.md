@@ -1,17 +1,18 @@
 # VCWatcher
 
-VCWatcher (Version Control Watcher) is an automated tool that helps you generate professional commit messages, without the need to manually track changes, or remember what was modified.
+VCWatcher (Version Control Watcher) automates the creation of detailed, professional commit messages for your version control updates.
 
-VCWatcher does not rely on any third-party version control systems such as git, and so it can be used with any. 
+VCWatcher does not rely on third-party version control systems such as git, and so it can be used in conjunction with any. It utilizes
+OpenAI Large Language Models to generate the commit messages, therefore your own OpenAI API key is required.
 
-After making changes to your project, just use the 'commit-generate' command, and VCWatcher will create a concise and informative commit message for your changes, leveraging the OpenAI LLM to process the differences.
+Start VCWatcher, modify your source files, and simply execute the 'commit-generate' command to craft clear, informative commit messages based on the detected differences.
 
 ## Features
-- Automatic Change Tracking: Monitor file changes automatically.
-- Automatic Commit Messages: Generate detailed commit messages with an LLM.
-- Easy to Use: A single command to generate commit message for all changes.
-- Customizable: Easily specify which directory to observe, and which should be excluded.
-- Low dependency count: Only 4 external dependencies.
+- **Change Tracking**: Monitors file changes automatically.
+- **Commit Messages**: Generates detailed commit messages with the use of an LLM.
+- **Easy to Use**: A single command to generate commit message for all source code changes.
+- **Customizable**: Easily specify which directory to observe, and which dirs should be excluded.
+- **Low dependency count**: Only 4 external dependencies, but only 3 are actually required.
 
 ## Table of Contents
 - [Installation]()
@@ -36,7 +37,7 @@ To get started with VCWatcher, follow these steps:
     $ pip install -r requirements.txt
     ```
 
-3. Create a `.env` file in the root directory and add your OpenAI API key:
+3. Use `echo`, or manually create a `.env` file in the root directory to store your OpenAI API key:
     ```
     echo "API_KEY=your_openai_api_key" > .env
     ```
@@ -54,18 +55,16 @@ Here is a quick guide to get you started:
     ```
     $ python vcwatcher.py G:/dev/project/
     -------------------------------------
-    VCWatcher is observing ....
+    VCWatcher is observing ...
     ```
-    To use the root directory of vcwatcher.py (Note the trailing dot):
+    Or to use the root directory (trailing dot):
     ```
     $ python vcwatcher.py .
     ```
 
 2. Start making changes to your files.
 
-3. When ready, use the commands:
-    - To generate a commit message, simply save all your files and then use `commit-generate` in the terminal.
-    - To exit, type `exit` or `quit`
+3. When ready, use the `commit-generate` command:
 
 Example:
 ```
@@ -105,7 +104,7 @@ Customize VCWatcher by modifying the `utils/utils.py` file:
     self.debounce_time: int = 1 # Debounce time in seconds
     ```
 
-- **Excluded Directories and Files**: Speficy directories and files to be excluded from monitoring. By default they are:
+- **Excluded Directories and Files**: Specify directories and files to be excluded from monitoring. By default they are:
     ```
     self.excluded_dirs = {'node_modules', '.git', '__pycache__', 'venv'}
     self.excluded_files = {'db.sqlite3', '.gitignore', 'package-lock.json', '.env'}
@@ -116,20 +115,55 @@ Customize VCWatcher by modifying the `utils/utils.py` file:
     You can modify the default system and user prompts for the LLM to resolve. You can add additional instructions, or change them completely.
 
 ## Tests
-In the root directory you will fine `test_watcher.py`, which uses `unittest` to test the tool. 
+In the root directory you will find `test_watcher.py`, which uses `unittest` to test the tool. 
 Currently all files and methods **except** `utils/utils.py` have test coverage. The reason why
-`Utils` is not tested, is simply because there is nothing to test. 
+`Utils` is not tested, is simply because there is nothing to test.
+
+To run tests:
+```
+$ python -m unittest -v
+------------------------------
+test_generate_commit_msg (test_watcher.TestCompletionHandler.test_generate_commit_msg) ... ok
+test_init (test_watcher.TestCompletionHandler.test_init) ... ok
+test_store_commit (test_watcher.TestCompletionHandler.test_store_commit) ... ok
+test_on_modified_handles_attribute_error (test_watcher.TestFileEventHandler.test_on_modified_handles_attribute_error) ... ok
+test_on_modified_ignored_due_to_debouce (test_watcher.TestFileEventHandler.test_on_modified_ignored_due_to_debouce) ... ok
+test_on_modified_processes_event (test_watcher.TestFileEventHandler.test_on_modified_processes_event) ... ok
+test_compare_files (test_watcher.TestFileHistoryHandler.test_compare_files) ... ok
+test_construct_tree (test_watcher.TestFileHistoryHandler.test_construct_tree) ... ok
+test_get_directory_tree (test_watcher.TestFileHistoryHandler.test_get_directory_tree) ... ok
+test_get_file_repr_excluded (test_watcher.TestFileHistoryHandler.test_get_file_repr_excluded) ... ok
+test_init (test_watcher.TestFileHistoryHandler.test_init) ... ok
+test_show_directory_tree (test_watcher.TestFileHistoryHandler.test_show_directory_tree) ... ok
+test_init (test_watcher.TestFileRepr.test_init) ... ok
+test_repr_method (test_watcher.TestFileRepr.test_repr_method) ... ok
+test_str_method (test_watcher.TestFileRepr.test_str_method) ... ok
+test_to_dict_method (test_watcher.TestFileRepr.test_to_dict_method) ... ok
+test_default_method (test_watcher.TestFileReprEncoder.test_default_method) ... ok
+test_encode_file_repr (test_watcher.TestFileReprEncoder.test_encode_file_repr) ... ok
+test_encode_other_objects (test_watcher.TestFileReprEncoder.test_encode_other_objects) ... ok
+test_init_raises_value_error_if_api_key_not_found (test_watcher.TestVCWatcher.test_init_raises_value_error_if_api_key_not_found) ... ok
+test_observe_dir_starts_observer (test_watcher.TestVCWatcher.test_observe_dir_starts_observer) ... ok
+test_run (test_watcher.TestVCWatcher.test_run) ... ok
+test_run_with_incorrect_arguments (test_watcher.TestVCWatcher.test_run_with_incorrect_arguments) ... ok
+test_run_with_invalid_directory (test_watcher.TestVCWatcher.test_run_with_invalid_directory) ... ok
+test_start_observing_in_thread_starts_thread (test_watcher.TestVCWatcher.test_start_observing_in_thread_starts_thread) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.030s
+OK
+```
 
 ## How it works
 
 ### vcwatcher.py
 This is the entry point for the tool. It imports some importatnt built-ins, third-party dependencies and self-defined utilities.
 
-At its core, VCWatcher utilizes [watchdog](https://pypi.org/project/watchdog/) to monitor any changes within a directory. It also uses [dotenv](https://pypi.org/project/python-dotenv/) to help load the API key from the `.env` file. This is only imported in vcwatcher.py, and loaded in the `__init__` method of VCWatcher. If you don't want to use it, you only have to remove three lines of code. You can simply remove it from the requirements, then the import statement, and finally `load_dotenv()` from VCWatcher `__init__` method.
+At its core, VCWatcher utilizes [watchdog](https://pypi.org/project/watchdog/) to monitor any changes within a directory. It also uses [dotenv](https://pypi.org/project/python-dotenv/) to help load the API key from the `.env` file. This is only imported in vcwatcher.py, and loaded in the constructor method of VCWatcher. If you don't want to use it, you only have to remove three lines of code; remove it from the requirements, then the import statement, and finally `load_dotenv()` from VCWatcher constructor method.
 
 ---
 ### class VCWatcher
-When creating an instance of VCWatcher, you must pass the `API_KEY` as an argument. If using `.env`, this will be populated automatically by `self.api_key = os.getenv(API_KEY)`:
+When creating an instance of VCWatcher, you must pass the **string** `API_KEY` as an argument. If using `.env`, this will be populated automatically by `self.api_key = os.getenv(API_KEY)`:
 ```
 watch = VCWatcher("API_KEY")
 ```
@@ -218,4 +252,8 @@ It ingests sys.argvs passed when calling `python vcwatcher.py` and creates a pat
 Once path is set, it constructs a directory tree for the first time, storing all file states as they appear **before** any changes. Finally, it calls `start_observing_in_thread` and awaits user command input. 
 
 ---
+### Note on FileRepr Object
+To simplify the representation of file contents when viewing a constructed directory tree, a FileRepr class has been added to utils. 
+This class allows to create objects with simple `__str__`, `__repr__` and `to_dict` methods. It also comes with a FileReprEncoder. 
+
 
