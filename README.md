@@ -211,4 +211,5 @@ It ingests sys.argvs passed when calling `python vcwatcher.py` and creates a pat
 
 Once path is set, it constructs a directory tree for the first time, storing all file states as they appear **before** any changes. Finally, it calls `start_observing_in_thread` and awaits user command input. 
 
+---
 
