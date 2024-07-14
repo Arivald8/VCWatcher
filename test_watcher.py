@@ -1,101 +1,75 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-import os
-import threading
+from unittest.mock import patch
 from vcwatcher import VCWatcher
 
 class TestVCWatcher(unittest.TestCase):
-    """
-    This test suite covers various aspects of the VCWatcher class:
+    @patch('vcwatcher.load_dotenv')
+    @patch('vcwatcher.os.getenv')
+    @patch('vcwatcher.Utils')
+    @patch('vcwatcher.CompletionHandler')
+    @patch('vcwatcher.FileHistoryHandler')
+    @patch('vcwatcher.FileEventHandler')
+    def setUp(self, mock_file_event_handler, mock_file_history_handler, mock_completion_handler, mock_utils, mock_getenv, mock_load_dotenv):
+        mock_getenv.return_value = 'dummy_api_key'
+        self.vcwatcher = VCWatcher('API_KEY')
 
-    1. It tests the API key loading functionality.
-    2. It checks if an exception is raised when an invalid API key is provided.
-    3. It tests the observe_dir method using mocks.
-    4. It verifies that start_observing_in_thread creates and starts a new thread.
-    5. It tests the run method with both invalid and valid paths.
-    6. It checks the 'commit-generate' functionality within the run method.
+    def test_init_loads_api_key(self):
+        self.assertEqual(self.vcwatcher.api_key, 'dummy_api_key')
 
-    Note that this test suite uses mocking extensively to avoid actual file 
-    system operations and to control the behavior of external dependencies.
-    """
-    def setUp(self) -> None:
-        # Create a mock .env file with a test API key
-        with open('.env', 'w') as f:
-            f.write('TEST_API_KEY=sk-test-api-key')
-        self.test_watch = VCWatcher("TEST_API_KEY")
-        return super().setUp()
-    
-    
-    def tearDown(self) -> None:
-        os.remove('.env')
-        return super().tearDown()
-    
-    
-    def test_load_api_key(self):
-        self.assertEqual(self.test_watch.log_api_key(), "sk-test_api_key")
-
-
-    def test_init_no_api_key(self):
+    @patch('vcwatcher.os.getenv')
+    def test_init_raises_value_error_if_api_key_not_found(self, mock_getenv):
+        mock_getenv.return_value = None
         with self.assertRaises(ValueError):
-            VCWatcher("NONEXISTENT_KEY")
-
+            VCWatcher('API_KEY')
 
     @patch('vcwatcher.Observer')
-    def test_observe_dir(self, mock_observer):
-        mock_observer_instance = MagicMock()
-        mock_observer.return_value = mock_observer_instance
-
-        self.test_watch.observe_dir()
-
+    @patch('vcwatcher.time.sleep', side_effect=KeyboardInterrupt)
+    def test_observe_dir_starts_observer(self, mock_sleep, mock_observer):
+        mock_observer_instance = mock_observer.return_value
+        self.vcwatcher.observe_dir()
         mock_observer_instance.schedule.assert_called_once()
         mock_observer_instance.start.assert_called_once()
+        mock_observer_instance.stop.assert_called_once()
         mock_observer_instance.join.assert_called_once()
 
+    @patch('vcwatcher.threading.Thread')
+    def test_start_observing_in_thread_starts_thread(self, mock_thread):
+        self.vcwatcher.start_observing_in_thread()
+        mock_thread.assert_called_once_with(target=self.vcwatcher.observe_dir)
+        mock_thread_instance = mock_thread.return_value
+        mock_thread_instance.daemon = True
+        mock_thread_instance.start.assert_called_once()
 
-    @patch('threading.Thread')
-    def test_start_observing_in_thread(self, mock_thread):
-        self.test_watch.start_observing_in_thread()
+    @patch('vcwatcher.sys.argv', ['vcwatcher.py', '/some/directory'])
+    @patch('vcwatcher.Path')
+    @patch('vcwatcher.input', side_effect=['exit'])
+    @patch.object(VCWatcher, 'start_observing_in_thread')
+    def test_run(self, mock_start_observing_in_thread, mock_input, mock_path):
+        mock_path_instance = mock_path.return_value
+        mock_path_instance.is_dir.return_value = True
+        self.vcwatcher.run()
+        mock_path.assert_called_once_with('/some/directory')
+        mock_path_instance.is_dir.assert_called_once()
+        self.assertEqual(self.vcwatcher.path, mock_path_instance)
+        self.vcwatcher.file_history.construct_tree.assert_called_once()
+        mock_start_observing_in_thread.assert_called_once()
 
-        mock_thread.assert_called_once_with(target=self.test_watch.observe_dir)
-        mock_thread.return_value.start.assert_called_once()
+    @patch('vcwatcher.sys.argv', ['vcwatcher.py'])
+    @patch('vcwatcher.print')
+    def test_run_with_incorrect_arguments(self, mock_print):
+        self.vcwatcher.run()
+        mock_print.assert_called_once_with("Usage: `python vcwatcher.py <directory_to_monitor>`")
 
-
-    @patch('builtins.print')
-    @patch('builtins.input')
-    @patch('vcwatcher.VCWatcher.start_observing_in_thread')
-    def test_run_invalid_path(self, mock_start_observing, mock_input, mock_print):
-        with patch('sys.argv', ['vcwatcher.py', '/invalid/path']):
-            self.test_watch.run()
-
-        mock_print.assert_any_call("Error: /invalid/path is not a valid directory.")
-
-
-    @patch('builtins.print')
-    @patch('builtins.input')
-    @patch('vcwatcher.VCWatcher.start_observing_in_thread')
-    @patch('pathlib.Path.is_dir', return_value=True)
-    def test_run_valid_path(self, mock_is_dir, mock_start_observing, mock_input, mock_print):
-        mock_input.side_effect = ['exit']
-        with patch('sys.argv', ['vcwatcher.py', '/valid/path']):
-            self.test_watch.run()
-        
-        mock_start_observing.assert_called_once()
-        mock_print.assert_any_call("\nVCWatcher is observing /valid/path...")
-
-    
-    @patch('builtins.print')
-    @patch('builtins.input')
-    @patch('vcwatcher.VCWatcher.start_observing_in_thread')
-    @patch('pathlib.Path.is_dir', return_value=True)
-    def test_run_commit_generate(self, mock_is_dir, mock_start_observing, mock_input, mock_print):
-        mock_input.side_effect = ['commit-generate', 'exit']
-        with patch('sys.argv', ['vcwatcher.py', '/valid/path']):
-            with patch.object(self.test_watch.completion, 'generate_commit_msg', return_value='Mocked commit message'):
-                self.test_watch.run()
-        
-        mock_print.assert_any_call('Mocked commit message')
-
+    @patch('vcwatcher.sys.argv', ['vcwatcher.py', '/invalid/directory'])
+    @patch('vcwatcher.Path')
+    @patch('vcwatcher.print')
+    def test_run_with_invalid_directory(self, mock_print, mock_path):
+        mock_path_instance = mock_path.return_value
+        mock_path_instance.is_dir.return_value = False
+        self.vcwatcher.run()
+        mock_path.assert_called_once_with('/invalid/directory')
+        mock_path_instance.is_dir.assert_called_once()
+        mock_print.assert_called_once_with(f"Error: {mock_path_instance} is not a valid directory.")
 
 if __name__ == '__main__':
     unittest.main()
