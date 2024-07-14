@@ -15,16 +15,16 @@ class FileHistoryHandler:
         self.visited: set[Path] = set() # Cache for visited directories to avoid RecursionError
     
     def get_directory_tree(self, current_path = None) -> Dict:
+        tree = {}
+        
         if current_path is None:
             current_path = self.root_path
-        tree = {}
-    
 
         for path in current_path.iterdir():
             file_repr = FileRepr()
 
             if path.is_dir():
-                if path.name not in self.utils.excluded_dirs and path.resolve() not in self.visited:
+                if path.name not in self.utils.excluded_dirs:
                     self.visited.add(path.resolve())
                     tree[path.name] = self.get_directory_tree(path)
                     file_repr.file_path = f"{current_path}/{path.name}"

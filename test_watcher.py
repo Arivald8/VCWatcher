@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
-import json
+import shutil
 from vcwatcher import VCWatcher
 
 from handlers.file_history_handler import FileHistoryHandler
@@ -83,15 +83,38 @@ class TestVCWatcher(unittest.TestCase):
 class TestFileHistoryHandler(unittest.TestCase):
     def setUp(self):
         self.mock_utils = MagicMock(Utils)
-        self.mock_utils.excluded_dirs = []
-        self.mock_utils.excluded_files = []
+        self.mock_utils.excluded_dirs = {
+            'node_modules', 
+            '.git', 
+            '__pycache__', 
+            'venv'
+        }
+        self.mock_utils.excluded_files = {
+            'db.sqlite3', 
+            '.gitignore', 
+            'package-lock.json', 
+            '.env',
+        }
         self.file_history_handler = FileHistoryHandler(utils=self.mock_utils)
+        self.test_dir = Path('test_temp_dir')
+        self.test_dir.mkdir(parents=True, exist_ok=True)
+        self.test_file = self.test_dir / 'test_file.txt'
+        self.test_file.write_text('Tester')
+
+    def tearDown(self) -> None:
+        if self.test_dir.exists():
+            shutil.rmtree(self.test_dir)
+        return super().tearDown()
 
     def test_init(self):
         self.assertIsInstance(self.file_history_handler.utils, Utils)
         self.assertEqual(self.file_history_handler.root_path, Path('.'))
         self.assertEqual(self.file_history_handler.tree, {})
         self.assertEqual(self.file_history_handler.visited, set())
+
+    def test_get_directory_tree(self):
+        directory_tree = str(self.file_history_handler.get_directory_tree(self.test_dir))
+        self.assertEqual(directory_tree, "{'test_file.txt': FileRepr Object @ test_temp_dir/test_file.txt}")
 
     def test_construct_tree(self):
         self.file_history_handler.visited.add(Path('some/dir'))
